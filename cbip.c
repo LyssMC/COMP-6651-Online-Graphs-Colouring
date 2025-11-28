@@ -12,7 +12,8 @@
 
 int *coloringBasedIntervalPartitionAlgorithm(Graph *isGraph)
 {
-    int isIndex = 0, isArbitrary = 0, isIteration = 0, isVertex = -1, isNavigate = 0, isChroma = 0, isProxy = 0;
+    // isNavigate = 0, isChroma = 0, isProxy = 0; deleted due to unused variable warnings
+    int isIndex = 0, isArbitrary = 0, isIteration = 0, isVertex = -1, isChroma = 0;
     bool *isAdjacentColor = NULL;
 
     // c(V): colours of vertices (0 = uncoloured)
@@ -107,7 +108,7 @@ int *coloringBasedIntervalPartitionAlgorithm(Graph *isGraph)
             }
         }
         // ===== choose smallest colour not used in B =====
-        for (isChroma = 1; isChroma < isGraph->Order; isChroma++)
+        for (isChroma = 1; isChroma <= isGraph->Order; isChroma++)
         {
             if (!*(isAdjacentColor + isChroma))
             {

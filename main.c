@@ -17,21 +17,21 @@
 
 #define GOLDEN_RATIO 1.618
 
-void displayColour(int *isColour, int isOrder);
+void displayColour(int *isColour, int Order);
 void isSimulationResult();
 
-void displayColour(int *isColour, int isOrder)
+void displayColour(int *isColour, int Order)
 {
-    for (int isIndex = 0; isIndex < isOrder; isIndex++)
+    for (int isIndex = 0; isIndex < Order; isIndex++)
     {
-        fprintf(stdout, isIndex == isOrder - 1 ? "[%d => %d]\n" : "[%d => %d], ", isIndex, *(isColour + isIndex));
+        fprintf(stdout, isIndex == Order - 1 ? "[%d => %d]\n" : "[%d => %d], ", isIndex, *(isColour + isIndex));
     }
     return;
 }
 
 void isSimulationResult()
 {
-    int isGenerate = 100, isInstance = 0, isIteration = 0, isOrder[6] = {50, 100, 200, 400, 800, 1600}, isSet[3] = {2, 3, 4}, *isColour = NULL;
+    int isGenerate = 100, isInstance = 0, isIteration = 0, Order[6] = {50, 100, 200, 400, 800, 1600}, graphSet[3] = {2, 3, 4}, *isColour = NULL;
     double isRatio = DBL_MIN, isMean = 0, isStandardDeviation = 0;
     double *isCompetitiveRatio = calloc(isGenerate, sizeof(double));
     if (isCompetitiveRatio == NULL)
@@ -39,10 +39,12 @@ void isSimulationResult()
         fprintf(stderr, "Memory Allocation Failed.\n");
         return;
     }
-    fprintf(stdout, "FirstFit Algorithm\n");
-    for (int isIndex = 0; isIndex < sizeof(isSet) / sizeof(isSet[0]); isIndex++)
+    //fprintf(stdout, "FirstFit Algorithm\n");
+    // NEW: CSV header
+    printf("Algorithm,k,n,N,avg_rho,sd_rho\n");
+    for (int isIndex = 0; isIndex < sizeof(graphSet) / sizeof(graphSet[0]); isIndex++)
     {
-        for (int isArbitrary = 0; isArbitrary < sizeof(isOrder) / sizeof(isOrder[0]); isArbitrary++)
+        for (int isArbitrary = 0; isArbitrary < sizeof(Order) / sizeof(Order[0]); isArbitrary++)
         {
             for (; isInstance < isGenerate; isInstance++)
             {
@@ -52,13 +54,17 @@ void isSimulationResult()
                     fprintf(stderr, "Memory Allocation Failed\n");
                     return;
                 }
-                generate_online_kcolourable(isGraph, isOrder[isArbitrary], isSet[isIndex], 0.3);
+                generate_online_kcolourable(isGraph, Order[isArbitrary], graphSet[isIndex], 0.3);
                 isColour = firstFitAlgorithm(isGraph);
+                // NEW fixed isRatio calculation
+                // Before isRatio was set to the last colour assigned, not the maximum colour used
+                int maxColor = 0;
                 for (isIteration = 0; isIteration < isGraph->Order; isIteration++)
                 {
-                    (*(isColour + isIteration) > isRatio) && (isRatio = *(isColour + isIteration));
+                    if (isColour[isIteration] > maxColor)
+                        maxColor = isColour[isIteration];
                 }
-                isRatio /= isGraph->graphSet;
+                isRatio = (double)maxColor / isGraph->graphSet;
                 isCompetitiveRatio[isInstance] = isRatio;
                 isMean += isRatio;
                 free(isColour);
@@ -100,13 +106,20 @@ void isSimulationResult()
             isStandardDeviation = sqrt(isStandardDeviation);
             isInstance = 0;
             memset(isCompetitiveRatio, 0, sizeof(double) * isGenerate);
-            fprintf(stdout, "Order = %d, Set = %d, Generate = %d, Competitive Ratio Mean = %.2lf, Competitive Ratio Standard Deviation = %.2lf\n", isOrder[isArbitrary], isSet[isIndex], isGenerate, isMean, isStandardDeviation);
+            // NEW: CSV output
+            //fprintf(stdout, "Order = %d, Set = %d, Generate = %d, Competitive Ratio Mean = %.2lf, Competitive Ratio Standard Deviation = %.2lf\n", Order[isArbitrary], Set[isIndex], isGenerate, isMean, isStandardDeviation);
+            printf("FirstFit,%d,%d,%d,%.6f,%.6f\n",
+                graphSet[isIndex],         // k
+                Order[isArbitrary],        // n
+                isGenerate,                // N
+                isMean,                    // avg_rho
+                isStandardDeviation);      // sd_rho            
             isMean = 0;
             isStandardDeviation = 0;
         }
     }
-    fprintf(stdout, "\nColoring Based Interval Partition Algorithm\n");
-    for (int isArbitrary = 0; isArbitrary < sizeof(isOrder) / sizeof(isOrder[0]); isArbitrary++)
+    //fprintf(stdout, "\nColoring Based Interval Partition Algorithm\n");
+    for (int isArbitrary = 0; isArbitrary < sizeof(Order) / sizeof(Order[0]); isArbitrary++)
     {
         for (; isInstance < isGenerate; isInstance++)
         {
@@ -116,13 +129,17 @@ void isSimulationResult()
                 fprintf(stderr, "Memory Allocation Failed\n");
                 return;
             }
-            generate_online_kcolourable(isGraph, isOrder[isArbitrary], isSet[0], 0.3);
+            generate_online_kcolourable(isGraph, Order[isArbitrary], graphSet[0], 0.3);
             isColour = coloringBasedIntervalPartitionAlgorithm(isGraph);
+            // NEW fixed isRatio calculation
+            // Before isRatio was set to the last colour assigned, not the maximum colour used
+            int maxColor = 0;
             for (isIteration = 0; isIteration < isGraph->Order; isIteration++)
             {
-                (*(isColour + isIteration) > isRatio) && (isRatio = *(isColour + isIteration));
+                if (isColour[isIteration] > maxColor)
+                    maxColor = isColour[isIteration];
             }
-            isRatio /= isGraph->graphSet;
+            isRatio = (double)maxColor / isGraph->graphSet;
             isCompetitiveRatio[isInstance] = isRatio;
             isMean += isRatio;
             free(isColour);
@@ -164,22 +181,118 @@ void isSimulationResult()
         isStandardDeviation = sqrt(isStandardDeviation);
         isInstance = 0;
         memset(isCompetitiveRatio, 0, sizeof(double) * isGenerate);
-        fprintf(stdout, "Order = %d, Set = %d, Generate = %d, Competitive Ratio Mean = %.2lf, Competitive Ratio Standard Deviation = %.2lf\n", isOrder[isArbitrary], isSet[0], isGenerate, isMean, isStandardDeviation);
+        //fprintf(stdout, "Order = %d, Set = %d, Generate = %d, Competitive Ratio Mean = %.2lf, Competitive Ratio Standard Deviation = %.2lf\n", Order[isArbitrary], Set[0], isGenerate, isMean, isStandardDeviation);
+        // NEW: CSV output
+        printf("CBIP,%d,%d,%d,%.6f,%.6f\n",
+            graphSet[0],                  // k
+            Order[isArbitrary],      // n
+            isGenerate,                // N
+            isMean,                    // avg_rho
+            isStandardDeviation);      // sd_rho
         isMean = 0;
         isStandardDeviation = 0;
     }
+    // ==========================================================
+    // NEW: Simulation II Heuristic FirstFit (firstFitAlgorithm_)
+    // ==========================================================
+    for (int isIndex = 0; isIndex < sizeof(graphSet)/sizeof(graphSet[0]); isIndex++)
+    {
+        int k = graphSet[isIndex];
+
+        for (int ordIdx = 0; ordIdx < sizeof(Order)/sizeof(Order[0]); ordIdx++)
+        {
+            int n = Order[ordIdx];
+
+            isMean = 0.0;
+            isStandardDeviation = 0.0;
+            isInstance = 0;
+            memset(isCompetitiveRatio, 0, sizeof(double) * isGenerate);
+
+            for (;isInstance < isGenerate; isInstance++)
+            {
+                Graph *isGraph = calloc(1, sizeof(Graph));
+                if (isGraph == NULL)
+                {
+                    fprintf(stderr, "Memory Allocation Failed\n");
+                    return;
+                }
+                generate_online_kcolourable(isGraph, n, k, 0.3);
+
+                // NEW: use heuristic version
+                isColour = firstFitAlgorithm_(isGraph);
+                // NEW fixed isRatio calculation
+                int maxColor = 0;
+                for (isIteration = 0; isIteration < isGraph->Order; isIteration++)
+                {
+                    if (isColour[isIteration] > maxColor)
+                        maxColor = isColour[isIteration];
+                }
+                double isRatio = (double)maxColor / (double)isGraph->graphSet;
+
+                isCompetitiveRatio[isInstance] = isRatio;
+                isMean += isRatio;
+                free(isColour);
+                isColour = NULL;
+                isRatio = DBL_MIN;
+                free(isGraph->Degree);
+                isGraph->Degree = NULL;
+                free(isGraph->VertexSet);
+                isGraph->VertexSet = NULL;
+                for (isIteration = 0; isIteration < isGraph->Order; isIteration++)
+                {
+                    free(*(isGraph->AdjacencyList + isIteration));
+                    *(isGraph->AdjacencyList + isIteration) = NULL;
+                    free(*(isGraph->AdjacencyMatrix + isIteration));
+                    *(isGraph->AdjacencyMatrix + isIteration) = NULL;
+                }
+                free(isGraph->AdjacencyList);
+                isGraph->AdjacencyList = NULL;
+                free(isGraph->AdjacencyMatrix);
+                isGraph->AdjacencyMatrix = NULL;
+                for (isIteration = 0; isIteration < isGraph->graphSet; isIteration++)
+                {
+                    free(isGraph->DisjointSet[isIteration]->Vertex);
+                    isGraph->DisjointSet[isIteration]->Vertex = NULL;
+                    free(isGraph->DisjointSet[isIteration]);
+                    isGraph->DisjointSet[isIteration] = NULL;
+                }
+                free(isGraph->DisjointSet);
+                isGraph->DisjointSet = NULL;
+                free(isGraph);
+                isGraph = NULL;
+            }
+
+            isMean /= isGenerate;
+            for (isInstance = 0; isInstance < isGenerate; isInstance++)
+            {
+                isStandardDeviation += pow(isCompetitiveRatio[isInstance] - isMean, 2);
+            }
+            isStandardDeviation /= (isGenerate - 1);
+            isStandardDeviation = sqrt(isStandardDeviation);
+            isInstance = 0;
+            memset(isCompetitiveRatio, 0, sizeof(double) * isGenerate);
+
+            printf("FirstFitHash,%d,%d,%d,%.6f,%.6f\n",
+                k, n, isGenerate, isMean, isStandardDeviation);
+            isMean = 0;
+            isStandardDeviation = 0;
+        }
+    }
+    return;
 }
 
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    // isSimulationResult();
+    isSimulationResult();
     Graph *isGraph = calloc(1, sizeof(Graph));
     if (isGraph == NULL)
     {
         fprintf(stderr, "Memory Allocation Failed\n");
         return 1;
     }
+    
+    // --- 1) Generate graph ---
     generate_online_kcolourable(isGraph, 2000, 4, 0.3);
     int isFileDescriptor = open("Online_K_Colourable_Graph.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
     int isArbitrary = (int)(isGraph->Order * ceil((double)(isGraph->Order - 1) / 2)), isEntry = 0;
@@ -205,7 +318,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%s.\n", strerror(errno));
         return 1;
     }
-    isWrite = snprintf(isString, isCapacity, "%*s\n", isWrite, "");
+    isWrite = snprintf(isString, isCapacity, "%*s\n", (int)isWrite, "");
     if (isWrite < 0)
     {
         fprintf(stderr, "%s.\n", strerror(errno));
@@ -257,7 +370,9 @@ int main(int argc, char *argv[])
     isColour = firstFitAlgorithm(isGraph);
     for (isArbitrary = 0; isArbitrary < isGraph->Order; isArbitrary++)
     {
-        (*(isColour + isArbitrary) > isCompetitiveRatio) && (isCompetitiveRatio = *(isColour + isArbitrary));
+        if (*(isColour + isArbitrary) > isCompetitiveRatio) {
+            isCompetitiveRatio = *(isColour + isArbitrary);
+        }
     }
     fprintf(stdout, "\nChroma = %.0lf, ", isCompetitiveRatio);
     isCompetitiveRatio /= isGraph->graphSet;
@@ -269,7 +384,9 @@ int main(int argc, char *argv[])
     isColour = firstFitAlgorithm_(isGraph);
     for (isArbitrary = 0; isArbitrary < isGraph->Order; isArbitrary++)
     {
-        (*(isColour + isArbitrary) > isCompetitiveRatio) && (isCompetitiveRatio = *(isColour + isArbitrary));
+        if (*(isColour + isArbitrary) > isCompetitiveRatio) {
+            isCompetitiveRatio = *(isColour + isArbitrary);
+        }
     }
     fprintf(stdout, "\nChroma = %.0lf, ", isCompetitiveRatio);
     isCompetitiveRatio /= isGraph->graphSet;
@@ -281,7 +398,9 @@ int main(int argc, char *argv[])
     isColour = coloringBasedIntervalPartitionAlgorithm(isGraph);
     for (isArbitrary = 0; isArbitrary < isGraph->Order; isArbitrary++)
     {
-        (*(isColour + isArbitrary) > isCompetitiveRatio) && (isCompetitiveRatio = *(isColour + isArbitrary));
+        if (*(isColour + isArbitrary) > isCompetitiveRatio) {
+            isCompetitiveRatio = *(isColour + isArbitrary);
+        }
     }
     fprintf(stdout, "\nChroma = %.0lf, ", isCompetitiveRatio);
     isCompetitiveRatio /= isGraph->graphSet;
