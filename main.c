@@ -219,7 +219,7 @@ void isSimulationResult()
                 generate_online_kcolourable(isGraph, n, k, 0.3);
 
                 // NEW: use heuristic version
-                isColour = firstFitAlgorithm_(isGraph);
+                isColour = firstFitAlgorithm_BinSearch(isGraph);
                 // NEW fixed isRatio calculation
                 int maxColor = 0;
                 for (isIteration = 0; isIteration < isGraph->Order; isIteration++)
@@ -272,7 +272,7 @@ void isSimulationResult()
             isInstance = 0;
             memset(isCompetitiveRatio, 0, sizeof(double) * isGenerate);
 
-            printf("FirstFitHash,%d,%d,%d,%.6f,%.6f\n",
+            printf("FirstFitBinSearch,%d,%d,%d,%.6f,%.6f\n",
                 k, n, isGenerate, isMean, isStandardDeviation);
             isMean = 0;
             isStandardDeviation = 0;
@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
     isColour = NULL;
     isCompetitiveRatio = DBL_MIN;
     fprintf(stdout, "\nFirst Fit Algorithm (Alternative)");
-    isColour = firstFitAlgorithm_(isGraph);
+    isColour = firstFitAlgorithm_BinSearch(isGraph);
     for (isArbitrary = 0; isArbitrary < isGraph->Order; isArbitrary++)
     {
         if (*(isColour + isArbitrary) > isCompetitiveRatio) {
