@@ -9,11 +9,11 @@ Open a terminal and navigate to the project directory.
 Compile the program using:
 
 ```bash
-gcc -Wall -O2 main.c graph.c generator.c firstfit.c cbip.c -o graphprog -lm
+make
 ```
 
 Run the executable and save the output to a CSV file:
 
 ```bash
-./graphprog > results.csv
+./program > results.csv
 ```
